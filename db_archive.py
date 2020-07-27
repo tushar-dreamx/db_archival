@@ -1,7 +1,6 @@
 import traceback
-
-from db_manager import DatabaseManager
-from dbconnection import ConnectionManager
+from sqlalchemy_db_connection import PandasConnectionManager
+from db_connection import ConnectionManager
 from pandas.io import sql
 import argparse
 
@@ -11,6 +10,7 @@ python db_archive.py -t transactions -fd 2020-06-10 -td 2020-06-12
 
 """
 
+
 class DatabaseArchiver:
     retry = 0
 
@@ -18,7 +18,7 @@ class DatabaseArchiver:
         return self.retry
 
     def get_db_engine(self):
-        db_manager = DatabaseManager()
+        db_manager = PandasConnectionManager()
         return db_manager.get_connection_engine()
 
     def get_db_connection(self):
@@ -26,11 +26,14 @@ class DatabaseArchiver:
         return con_manager.get_connection()
 
     def archive_database(self, table_name, from_date, to_date, interval):
-        sqlalchemy_db_con = None
+        pandas_sql_db_con = None
         sql_db_con = None
         count = None
         try:
-            sqlalchemy_db_con = self.get_db_engine()
+            # For Dataframe easy data read and copy purpose.
+            pandas_sql_db_con = self.get_db_engine()
+
+            # For simple queries that do not require dataframes.
             sql_db_con = self.get_db_connection()
             # validate to and from date
             if not self.is_valid_from_date(sql_db_con, table_name, from_date) or not self.is_valid_to_date(
@@ -45,21 +48,21 @@ class DatabaseArchiver:
             if not self.is_valid_interval(count, interval):
                 return
 
-            self.start_archive_task(sqlalchemy_db_con, sql_db_con, table_name, from_date, to_date, count, interval)
+            self.start_archive_task(pandas_sql_db_con, sql_db_con, table_name, from_date, to_date, count, interval)
 
             print("Number of rows is " + str(count))
 
         except Exception as ex:
             print("Error!! \n ❌", ex)
             try:
-                self.start_archive_task(sqlalchemy_db_con, table_name, from_date, to_date, count, interval)
+                self.start_archive_task(pandas_sql_db_con, table_name, from_date, to_date, count, interval)
             except Exception as e:
                 print("Error!! \n ❌", ex)
                 traceback.print_exception(None, ex, ex.__traceback__)
 
         finally:
-            if sqlalchemy_db_con.closed == False:
-                sqlalchemy_db_con.close()
+            if pandas_sql_db_con.closed == False:
+                pandas_sql_db_con.close()
             if sql_db_con.is_connected():
                 sql_db_con.disconnect()
 

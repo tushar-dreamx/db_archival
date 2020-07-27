@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
-from config import config
+from db_config import config
 
-class DatabaseManager:
+
+class PandasConnectionManager:
     con = None
     config = None
 

@@ -1,9 +1,12 @@
 import mysql.connector
 from mysql.connector import Error
-from config import config
+from db_config import config
+
+
 class ConnectionManager:
     connection = None
     config = None
+
     def __init__(self):
         self.config = config
         if not self.connection:
